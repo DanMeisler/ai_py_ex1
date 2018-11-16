@@ -195,42 +195,28 @@ class Problem(object):
 
 
 class Game(Problem):
-    MOVE_UP = 1
-    MOVE_DOWN = 2
-    MOVE_LEFT = 3
-    MOVE_RIGHT = 4
+    MOVES = ["U", "D", "L", "R"]
 
     def __init__(self, init_state_string, board_size):
-        super(Game, self).__init__(ProblemNode(GameState(init_state_string, board_size), None, None),
-                                   [self.MOVE_UP, self.MOVE_DOWN, self.MOVE_LEFT, self.MOVE_RIGHT])
+        super(Game, self).__init__(ProblemNode(GameState(init_state_string, board_size), None, None), self.MOVES)
         self._board_size = board_size
 
     def operate(self, state, operator):
         state = GameState(str(state), self._board_size)
-        if operator == self.MOVE_UP:
+        if operator == "U":
             state.move_up()
-        elif operator == self.MOVE_DOWN:
+        elif operator == "D":
             state.move_down()
-        elif operator == self.MOVE_LEFT:
+        elif operator == "L":
             state.move_left()
-        elif operator == self.MOVE_RIGHT:
+        elif operator == "R":
             state.move_right()
         return state
-
-    def _operator_to_character(self, operator):
-        if operator == self.MOVE_UP:
-            return "U"
-        elif operator == self.MOVE_DOWN:
-            return "D"
-        elif operator == self.MOVE_LEFT:
-            return "L"
-        elif operator == self.MOVE_RIGHT:
-            return "R"
 
     def get_path(self, node):
         path = ""
         while node.parent:
-            path = self._operator_to_character(node.operator) + path
+            path = node.operator + path
             node = node.parent
         return path
 
