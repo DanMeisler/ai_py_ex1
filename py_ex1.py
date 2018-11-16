@@ -17,7 +17,10 @@ class Search(object):
         return self._nodes.popleft()
 
     def _add_node(self, parent, operator):
-        node_state = self._problem.operate(parent.state, operator)
+        try:
+            node_state = self._problem.operate(parent.state, operator)
+        except Exception:
+            return
         self._nodes.append(ProblemNode(node_state, parent, operator))
 
     @property
@@ -36,12 +39,17 @@ class Bfs(Search):
         node = self._open_node()
         while not node.is_goal():
             for operator in self._problem.operators:
-                try:
-                    self._add_node(node, operator)
-                except Exception:
-                    continue
+                self._add_node(node, operator)
             node = self._open_node()
         return node
+
+
+class Ids(Search):
+    pass
+
+
+class AStar(Search):
+    pass
 
 
 class InputParameters(object):
