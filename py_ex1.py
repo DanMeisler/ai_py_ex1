@@ -31,8 +31,9 @@ def matrix_to_list(source_matrix):
 class Search(object):
     def __init__(self, problem):
         self._problem = problem
-        self._nodes = deque([self._problem.root_node])
-        self._opened_node_count = 0
+        self._opened_node_count = None
+        self._nodes = None
+        self._init_nodes()
 
     @property
     def open_node_count(self):
@@ -41,16 +42,16 @@ class Search(object):
     def search(self):
         pass
 
+    def _init_nodes(self):
+        self._nodes = deque([self._problem.root_node])
+        self._opened_node_count = 0
+
     def _open_node(self):
         self._opened_node_count += 1
         return self._nodes.popleft()
 
-    def _add_node(self, parent, operator):
-        try:
-            node_state = self._problem.operate(parent.state, operator)
-        except Exception:
-            return
-        self._nodes.append(ProblemNode(node_state, parent, operator))
+    def _create_node(self, parent, operator):
+        return ProblemNode(self._problem.operate(parent.state, operator), parent, operator)
 
 
 class Bfs(Search):
@@ -65,9 +66,48 @@ class Bfs(Search):
             node = self._open_node()
         return node
 
+    def _add_node(self, parent, operator):
+        try:
+            self._nodes.append(self._create_node(parent, operator))
+        except Exception:
+            return None
+
 
 class Ids(Search):
-    pass
+    def __init__(self, problem):
+        super(Ids, self).__init__(problem)
+        self._depth = 0
+
+    @property
+    def depth(self):
+        return self._depth
+
+    def search(self):
+        while True:
+            goal_node = self._search_current_depth()
+            if goal_node:
+                return goal_node
+            self._depth += 1
+            self._init_nodes()
+
+    def _add_node_children(self, node):
+        children = []
+        for operator in self._problem.operators:
+            try:
+                children.append(self._create_node(node, operator))
+            except Exception:
+                pass
+        self._nodes.extendleft(children)
+
+    def _search_current_depth(self):
+        node = self._open_node()
+        while not node.is_goal():
+            if node.depth < self.depth:
+                self._add_node_children(node)
+            if len(self._nodes) == 0:
+                return None
+            node = self._open_node()
+        return node
 
 
 class AStar(Search):
@@ -119,6 +159,15 @@ class ProblemNode(object):
     @property
     def operator(self):
         return self._operator
+
+    @property
+    def depth(self):
+        depth = 0
+        node = self
+        while node.parent:
+            depth += 1
+            node = node.parent
+        return depth
 
     def is_goal(self):
         return self._state.is_goal()
@@ -269,7 +318,9 @@ def main():
     game = Game(input_parameters.init_state_string, input_parameters.board_size)
 
     if input_parameters.search_type == "IDS":
-        pass
+        search = Ids(game)
+        goal_node = search.search()
+        create_output(game.get_path(goal_node), search.open_node_count, search.depth)
     elif input_parameters.search_type == "BFS":
         search = Bfs(game)
         goal_node = search.search()
