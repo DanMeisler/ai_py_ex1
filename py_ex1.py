@@ -91,13 +91,11 @@ class Ids(Search):
             self._init_nodes()
 
     def _add_node_children(self, node):
-        children = []
-        for operator in self._problem.operators:
+        for operator in reversed(self._problem.operators):
             try:
-                children.append(self._create_node(node, operator))
+                self._nodes.appendleft(self._create_node(node, operator))
             except Exception:
                 pass
-        self._nodes.extendleft(children)
 
     def _search_current_depth(self):
         node = self._open_node()
@@ -107,6 +105,7 @@ class Ids(Search):
             if len(self._nodes) == 0:
                 return None
             node = self._open_node()
+
         return node
 
 
@@ -168,6 +167,15 @@ class ProblemNode(object):
             depth += 1
             node = node.parent
         return depth
+
+    @property
+    def path(self):
+        path = ""
+        node = self
+        while node.parent:
+            path = node.operator + path
+            node = node.parent
+        return path
 
     def is_goal(self):
         return self._state.is_goal()
@@ -250,7 +258,7 @@ class Problem(object):
     def __init__(self, root_node, operators):
         """
         :param root_node: the root node of the problem graph
-        :param operators: should be sorted by the search priority
+        :param operators: list which should be sorted by the search priority
         """
         self._operators = operators
         self._root_node = root_node
@@ -268,13 +276,6 @@ class Problem(object):
         :param state: the source state we want to apply the operator on
         :param operator: the operator we want to apply
         :return: a state which was crafted from the source state by using operator
-        """
-        pass
-
-    def get_path(self, node):
-        """
-        :param node: the node which we search for his path
-        :return: the path to node from root_node
         """
         pass
 
@@ -298,13 +299,6 @@ class Game(Problem):
             state.move_right()
         return state
 
-    def get_path(self, node):
-        path = ""
-        while node.parent:
-            path = node.operator + path
-            node = node.parent
-        return path
-
 
 def create_output(*args):
     with open(OUTPUT_FILE_PATH, "w") as output_file:
@@ -320,11 +314,11 @@ def main():
     if input_parameters.search_type == "IDS":
         search = Ids(game)
         goal_node = search.search()
-        create_output(game.get_path(goal_node), search.open_node_count, search.depth)
+        create_output(goal_node.path, search.open_node_count, search.depth)
     elif input_parameters.search_type == "BFS":
         search = Bfs(game)
         goal_node = search.search()
-        create_output(game.get_path(goal_node), search.open_node_count, 0)
+        create_output(goal_node.path, search.open_node_count, 0)
     elif input_parameters.search_type == "A*":
         pass
 
