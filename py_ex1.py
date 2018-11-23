@@ -6,48 +6,38 @@ INPUT_FILE_PATH = os.path.join("input.txt")
 OUTPUT_FILE_PATH = os.path.join("output.txt")
 
 
-def list_to_matrix(source_list, matrix_size):
-    """
-    Convert list to matrix
-    :param source_list: the list we want to convert to matrix
-    :param matrix_size: the destination matrix size
-    :return: thematrix
-    """
-    return [[source_list[y * matrix_size + x] for x in range(matrix_size)] for y in range(matrix_size)]
+class InputParameters(object):
+    SEARCH_TYPES = {1: "IDS", 2: "BFS", 3: "A*"}
 
+    def __init__(self, input_file):
+        self._input_file = input_file
+        self.search_type = None
+        self.board_size = None
+        self.init_state_string = None
+        self._parse_input_file()
 
-def matrix_to_list(source_matrix):
-    """
-    Convert matrix to list
-    :param source_matrix: the matrix we want to convert to list
-    :return: the list
-    """
-    state_list = []
-    for row in source_matrix:
-        state_list.extend(row)
-    return state_list
+    def _parse_input_file(self):
+        self.search_type = self.SEARCH_TYPES[int(self._input_file.readline())]
+        self.board_size = int(self._input_file.readline())
+        self.init_state_string = self._input_file.readline()
 
 
 class Search(object):
     def __init__(self, problem):
         self._problem = problem
-        self._opened_node_count = None
+        self.opened_node_count = None
         self._nodes = None
         self._init_nodes()
 
-    @property
-    def open_node_count(self):
-        return self._opened_node_count
-
     def search(self):
-        pass
+        raise NotImplementedError()
 
     def _init_nodes(self):
         self._nodes = deque([self._problem.root_node])
-        self._opened_node_count = 0
+        self.opened_node_count = 0
 
     def _open_node(self):
-        self._opened_node_count += 1
+        self.opened_node_count += 1
         return self._nodes.popleft()
 
     def _create_node(self, parent, operator):
@@ -60,7 +50,62 @@ class Bfs(Search):
 
     def search(self):
         node = self._open_node()
-        while not node.is_goal():
+        while not node.state.is_goal():
+            for operator in self._problem.operators:
+                self._add_node(node, operator)
+            node = self._open_node()
+
+        return node
+
+    def _add_node(self, parent, operator):
+        try:
+            self._nodes.append(self._create_node(parent, operator))
+        except Exception:
+            pass
+
+
+class Ids(Search):
+    def __init__(self, problem):
+        super(Ids, self).__init__(problem)
+        self.depth = 0
+
+    def search(self):
+        while True:
+            goal_node = self._search_current_depth()
+            if goal_node:
+                return goal_node
+            self.depth += 1
+            self._init_nodes()
+
+    def _add_children(self, parent):
+        for operator in reversed(self._problem.operators):
+            try:
+                self._nodes.appendleft(self._create_node(parent, operator))
+            except Exception:
+                pass
+
+    def _search_current_depth(self):
+        node = self._open_node()
+        while not node.state.is_goal():
+            if node.depth < self.depth:
+                self._add_children(node)
+            if len(self._nodes) == 0:
+                return None
+            node = self._open_node()
+
+        return node
+
+
+class AStar(Search):
+    def __init__(self, problem):
+        super(AStar, self).__init__(problem)
+
+    def search(self):
+        node = self._open_node()
+        i = 0
+        while not node.state.is_goal():
+            print i, node, node.cost
+            i += 1
             for operator in self._problem.operators:
                 self._add_node(node, operator)
             node = self._open_node()
@@ -70,94 +115,18 @@ class Bfs(Search):
         try:
             self._nodes.append(self._create_node(parent, operator))
         except Exception:
-            return None
-
-
-class Ids(Search):
-    def __init__(self, problem):
-        super(Ids, self).__init__(problem)
-        self._depth = 0
-
-    @property
-    def depth(self):
-        return self._depth
-
-    def search(self):
-        while True:
-            goal_node = self._search_current_depth()
-            if goal_node:
-                return goal_node
-            self._depth += 1
-            self._init_nodes()
-
-    def _add_node_children(self, node):
-        for operator in reversed(self._problem.operators):
-            try:
-                self._nodes.appendleft(self._create_node(node, operator))
-            except Exception:
-                pass
-
-    def _search_current_depth(self):
-        node = self._open_node()
-        while not node.is_goal():
-            if node.depth < self.depth:
-                self._add_node_children(node)
-            if len(self._nodes) == 0:
-                return None
-            node = self._open_node()
-
-        return node
-
-
-class AStar(Search):
-    pass
-
-
-class InputParameters(object):
-    SEARCH_TYPES = {1: "IDS", 2: "BFS", 3: "A*"}
-
-    def __init__(self, input_file):
-        self._input_file = input_file
-        self._search_type = None
-        self._board_size = None
-        self._init_state_string = None
-        self._parse_input_file()
-
-    @property
-    def search_type(self):
-        return self._search_type
-
-    @property
-    def board_size(self):
-        return self._board_size
-
-    @property
-    def init_state_string(self):
-        return self._init_state_string
-
-    def _parse_input_file(self):
-        self._search_type = self.SEARCH_TYPES[int(self._input_file.readline())]
-        self._board_size = int(self._input_file.readline())
-        self._init_state_string = self._input_file.readline()
+            return
+        self._nodes = deque(sorted(self._nodes, key=lambda x: x.cost))
 
 
 class ProblemNode(object):
     def __init__(self, state, parent, operator):
-        self._parent = parent
-        self._operator = operator
-        self._state = state
+        self.parent = parent
+        self.operator = operator
+        self.state = state
 
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def parent(self):
-        return self._parent
-
-    @property
-    def operator(self):
-        return self._operator
+    def __repr__(self):
+        return repr(self.state) + " " + self.path
 
     @property
     def depth(self):
@@ -177,81 +146,73 @@ class ProblemNode(object):
             node = node.parent
         return path
 
-    def is_goal(self):
-        return self._state.is_goal()
+    @property
+    def cost(self):
+        return self.state.manhattan_distance + self.depth
 
 
 class ProblemState(object):
-    def __init__(self):
-        pass
+    @property
+    def manhattan_distance(self):
+        raise NotImplementedError()
 
     def is_goal(self):
-        pass
+        raise NotImplementedError()
 
 
-class GameState(ProblemState):
-    def __init__(self, state, matrix_size):
-        super(GameState, self).__init__()
-        self._matrix_size = matrix_size
-        state_list = [int(x) for x in state.split("-")]
-        self._matrix = list_to_matrix(state_list, self._matrix_size)
+class TilesGameState(ProblemState):
+    def __init__(self, state, board_size):
+        super(TilesGameState, self).__init__()
+        self._board_size = board_size
+        self._list = [int(x) for x in state.split("-")]
 
     def __str__(self):
-        state_list = matrix_to_list(self._matrix)
-        return "-".join([str(x) for x in state_list])
+        return "-".join([str(x) for x in self._list])
+
+    def __repr__(self):
+        return str(self) + " (md=%d)" % self.manhattan_distance
+
+    @property
+    def manhattan_distance(self):
+        distance_sum = 0
+        for i in xrange(1, self._board_size ** 2):
+            y1 = self._list.index(i) / self._board_size
+            x1 = self._list.index(i) % self._board_size
+            y2 = (i - 1) / self._board_size
+            x2 = (i - 1) % self._board_size
+            distance_sum += abs(x2 - x1) + abs(y2 - y1)
+        return distance_sum
 
     def is_goal(self):
-        state_list = matrix_to_list(self._matrix)
-        if state_list[-1] != 0:
-            return False
-
-        for i in range(0, len(state_list) - 2):
-            if state_list[i] > state_list[i + 1]:
-                return False
-
-        return True
+        return self.manhattan_distance == 0
 
     def move_up(self):
-        empty_y, empty_x = self._locate(0)
-        if empty_y == self._matrix_size - 1:
+        empty_index = self._list.index(0)
+        tile_index = empty_index + self._board_size
+        if tile_index >= len(self._list):
             raise Exception("Cannot move up")
-
-        self._matrix[empty_y][empty_x] = self._matrix[empty_y + 1][empty_x]
-        self._matrix[empty_y + 1][empty_x] = 0
+        self._list[empty_index], self._list[tile_index] = self._list[tile_index], self._list[empty_index]
 
     def move_down(self):
-        empty_y, empty_x = self._locate(0)
-        if empty_y == 0:
+        empty_index = self._list.index(0)
+        tile_index = empty_index - self._board_size
+        if tile_index < 0:
             raise Exception("Cannot move down")
-
-        self._matrix[empty_y][empty_x] = self._matrix[empty_y - 1][empty_x]
-        self._matrix[empty_y - 1][empty_x] = 0
+        self._list[empty_index], self._list[tile_index] = self._list[tile_index], self._list[empty_index]
 
     def move_left(self):
-        empty_y, empty_x = self._locate(0)
-        if empty_x == self._matrix_size - 1:
+        empty_index = self._list.index(0)
+        tile_index = empty_index + 1
+        if tile_index % self._board_size == 0:
             raise Exception("Cannot move left")
-
-        self._matrix[empty_y][empty_x] = self._matrix[empty_y][empty_x + 1]
-        self._matrix[empty_y][empty_x + 1] = 0
+        self._list[empty_index], self._list[tile_index] = self._list[tile_index], self._list[empty_index]
 
     def move_right(self):
-        empty_y, empty_x = self._locate(0)
-        if empty_x == 0:
+        empty_index = self._list.index(0)
+        tile_index = empty_index - 1
+        if empty_index % self._board_size == 0:
             raise Exception("Cannot move right")
-
-        self._matrix[empty_y][empty_x] = self._matrix[empty_y][empty_x - 1]
-        self._matrix[empty_y][empty_x - 1] = 0
-
-    def _locate(self, value):
-        """
-        :param value: the value to locate in _matrix
-        :return: a a index tuple (row, column) where the value is
-        """
-        for row in range(self._matrix_size):
-            for column in range(self._matrix_size):
-                if self._matrix[row][column] == value:
-                    return row, column
+        self._list[empty_index], self._list[tile_index] = self._list[tile_index], self._list[empty_index]
 
 
 class Problem(object):
@@ -260,16 +221,8 @@ class Problem(object):
         :param root_node: the root node of the problem graph
         :param operators: list which should be sorted by the search priority
         """
-        self._operators = operators
-        self._root_node = root_node
-
-    @property
-    def operators(self):
-        return self._operators
-
-    @property
-    def root_node(self):
-        return self._root_node
+        self.operators = operators
+        self.root_node = root_node
 
     def operate(self, state, operator):
         """
@@ -277,18 +230,19 @@ class Problem(object):
         :param operator: the operator we want to apply
         :return: a state which was crafted from the source state by using operator
         """
-        pass
+        raise NotImplementedError()
 
 
-class Game(Problem):
+class TilesGame(Problem):
     MOVES = ["U", "D", "L", "R"]
 
     def __init__(self, init_state_string, board_size):
-        super(Game, self).__init__(ProblemNode(GameState(init_state_string, board_size), None, None), self.MOVES)
+        super(TilesGame, self).__init__(ProblemNode(TilesGameState(init_state_string, board_size), None, None),
+                                        self.MOVES)
         self._board_size = board_size
 
     def operate(self, state, operator):
-        state = GameState(str(state), self._board_size)
+        state = TilesGameState(str(state), self._board_size)
         if operator == "U":
             state.move_up()
         elif operator == "D":
@@ -309,18 +263,20 @@ def main():
     with open(INPUT_FILE_PATH, "r") as input_file:
         input_parameters = InputParameters(input_file)
 
-    game = Game(input_parameters.init_state_string, input_parameters.board_size)
+    game = TilesGame(input_parameters.init_state_string, input_parameters.board_size)
 
     if input_parameters.search_type == "IDS":
         search = Ids(game)
         goal_node = search.search()
-        create_output(goal_node.path, search.open_node_count, search.depth)
+        create_output(goal_node.path, search.opened_node_count, search.depth)
     elif input_parameters.search_type == "BFS":
         search = Bfs(game)
         goal_node = search.search()
-        create_output(goal_node.path, search.open_node_count, 0)
+        create_output(goal_node.path, search.opened_node_count, 0)
     elif input_parameters.search_type == "A*":
-        pass
+        search = AStar(game)
+        goal_node = search.search()
+        create_output(goal_node.path, search.opened_node_count, goal_node.cost)
 
 
 if __name__ == "__main__":
