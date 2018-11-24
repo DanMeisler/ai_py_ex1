@@ -26,16 +26,18 @@ class InputParameters(object):
 
 class PriorityQueue(object):
     def __init__(self, elements=None):
+        self._next_item_id = 0
         if not elements:
             self._elements = []
         else:
             self._elements = elements
 
     def push(self, item, priority):
-        heapq.heappush(self._elements, (priority, item))
+        heapq.heappush(self._elements, (priority, self._next_item_id, item))
+        self._next_item_id += 1
 
     def pop(self):
-        return heapq.heappop(self._elements)[1]
+        return heapq.heappop(self._elements)[2]
 
 
 class Search(object):
@@ -193,11 +195,15 @@ class ProblemNode(object):
 
 
 class ProblemState(object):
+
     @property
     def heuristic(self):
         raise NotImplementedError()
 
     def is_goal(self):
+        """
+        :return: return true if the state is a goal state
+        """
         raise NotImplementedError()
 
 
@@ -273,7 +279,7 @@ class Problem(object):
         """
         :param state: the source state we want to apply the operator on
         :param operator: the operator we want to apply
-        :return: a state which was crafted from the source state by using operator
+        :return: a state which was crafted from the source state by using the selected operator
         """
         raise NotImplementedError()
 
