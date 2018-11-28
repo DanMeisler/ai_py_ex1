@@ -31,6 +31,7 @@ class PriorityQueue(object):
     """
     A generic priority queue implementation using heapq
     """
+
     def __init__(self, elements=None):
         self._next_item_id = 0
         if not elements:
@@ -57,6 +58,7 @@ class Search(object):
     """
     A generic graph search class
     """
+
     def __init__(self, problem):
         """
         :param problem: the problem to search on
@@ -100,7 +102,7 @@ class Search(object):
 
 class Bfs(Search):
     def __init__(self, problem):
-        super(Bfs, self).__init__(problem)
+        super().__init__(problem)
         self._init_nodes()
 
     def search(self):
@@ -132,7 +134,7 @@ class Bfs(Search):
 
 class Ids(Search):
     def __init__(self, problem):
-        super(Ids, self).__init__(problem)
+        super().__init__(problem)
         self._init_nodes()
         self.depth = 0
 
@@ -179,7 +181,7 @@ class Ids(Search):
 
 class AStar(Search):
     def __init__(self, problem):
-        super(AStar, self).__init__(problem)
+        super().__init__(problem)
         self._init_nodes()
 
     def search(self):
@@ -214,6 +216,7 @@ class ProblemNode(object):
     """
     A generic problem node class
     """
+
     def __init__(self, state, parent, operator):
         """
         :param state: a state
@@ -267,12 +270,13 @@ class TilesGameState(ProblemState):
     """
     A tiles game state class
     """
+
     def __init__(self, raw, board_size):
         """
         :param raw: a list represents the state
         :param board_size: the size of a board's edge (size of raw must be board_size to the power of two)
         """
-        super(TilesGameState, self).__init__()
+        super().__init__()
         self._board_size = board_size
         self.raw = raw
 
@@ -322,11 +326,11 @@ class TilesGameState(ProblemState):
         :return: manhattan distance value
         """
         distance_sum = 0
-        for i in xrange(1, self._board_size ** 2):
+        for i in range(1, self._board_size ** 2):
             i_index = self.raw.index(i)
-            y1 = i_index / self._board_size
+            y1 = i_index // self._board_size
             x1 = i_index % self._board_size
-            y2 = (i - 1) / self._board_size
+            y2 = (i - 1) // self._board_size
             x2 = (i - 1) % self._board_size
             distance_sum += abs(x2 - x1) + abs(y2 - y1)
         return distance_sum
@@ -336,6 +340,7 @@ class Problem(object):
     """
     A generic problem class
     """
+
     def __init__(self, root_node, operators):
         """
         :param root_node: the root node of the problem graph
@@ -364,8 +369,7 @@ class TilesGame(Problem):
         :param init_state_raw: a list representing the initial state
         :param board_size: the size of a board's edge (size of init_state_raw must be board_size to the power of two)
         """
-        super(TilesGame, self).__init__(ProblemNode(TilesGameState(init_state_raw, board_size), None, None),
-                                        self.MOVES)
+        super().__init__(ProblemNode(TilesGameState(init_state_raw, board_size), None, None), self.MOVES)
         self._board_size = board_size
 
     def operate(self, state, operator):
